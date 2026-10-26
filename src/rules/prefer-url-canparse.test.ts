@@ -1,5 +1,6 @@
 import {RuleTester} from 'eslint';
 import {preferUrlCanParse} from './prefer-url-canparse.js';
+import {describe} from 'vitest';
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -8,30 +9,31 @@ const ruleTester = new RuleTester({
   }
 });
 
-ruleTester.run('prefer-url-canparse', preferUrlCanParse, {
-  valid: [
-    // Normal URL construction without try-catch
-    {
-      code: `
+describe('prefer-url-canparse', () => {
+  ruleTester.run('prefer-url-canparse', preferUrlCanParse, {
+    valid: [
+      // Normal URL construction without try-catch
+      {
+        code: `
         function normalFunction() {
           const url = new URL('https://example.com');
           return url.href;
         }
       `
-    },
-    // Try-catch without URL pattern
-    {
-      code: `
+      },
+      // Try-catch without URL pattern
+      {
+        code: `
         try {
           riskyOperation();
         } catch {
           console.error('Error');
         }
       `
-    },
-    // Try-catch with URL but not as first statement
-    {
-      code: `
+      },
+      // Try-catch with URL but not as first statement
+      {
+        code: `
         function test() {
           try {
             doSomething();
@@ -42,22 +44,22 @@ ruleTester.run('prefer-url-canparse', preferUrlCanParse, {
           }
         }
       `
-    },
-    // Try without catch
-    {
-      code: `
+      },
+      // Try without catch
+      {
+        code: `
         try {
           new URL(u);
         } finally {
           cleanup();
         }
       `
-    }
-  ],
-  invalid: [
-    // Simple boolean return pattern
-    {
-      code: `
+      }
+    ],
+    invalid: [
+      // Simple boolean return pattern
+      {
+        code: `
         function isValidUrl(u) {
           try {
             new URL(u);
@@ -67,27 +69,27 @@ ruleTester.run('prefer-url-canparse', preferUrlCanParse, {
           }
         }
       `,
-      errors: [
-        {
-          messageId: 'preferCanParse',
-          line: 3,
-          column: 11,
-          suggestions: [
-            {
-              messageId: 'replaceWithCanParse',
-              output: `
+        errors: [
+          {
+            messageId: 'preferCanParse',
+            line: 3,
+            column: 11,
+            suggestions: [
+              {
+                messageId: 'replaceWithCanParse',
+                output: `
         function isValidUrl(u) {
           return URL.canParse(u)
         }
       `
-            }
-          ]
-        }
-      ]
-    },
-    // Try-catch with body and catch body
-    {
-      code: `
+              }
+            ]
+          }
+        ]
+      },
+      // Try-catch with body and catch body
+      {
+        code: `
         function processUrl(u) {
           try {
             new URL(u);
@@ -98,15 +100,15 @@ ruleTester.run('prefer-url-canparse', preferUrlCanParse, {
           }
         }
       `,
-      errors: [
-        {
-          messageId: 'preferCanParse',
-          line: 3,
-          column: 11,
-          suggestions: [
-            {
-              messageId: 'replaceWithCanParse',
-              output: `
+        errors: [
+          {
+            messageId: 'preferCanParse',
+            line: 3,
+            column: 11,
+            suggestions: [
+              {
+                messageId: 'replaceWithCanParse',
+                output: `
         function processUrl(u) {
           if (URL.canParse(u)) {
 console.log('Valid URL');
@@ -116,14 +118,14 @@ console.error('Invalid URL');
 }
         }
       `
-            }
-          ]
-        }
-      ]
-    },
-    // Try-catch with only try body (no catch body)
-    {
-      code: `
+              }
+            ]
+          }
+        ]
+      },
+      // Try-catch with only try body (no catch body)
+      {
+        code: `
         function processUrl(u) {
           try {
             new URL(u);
@@ -132,29 +134,29 @@ console.error('Invalid URL');
           }
         }
       `,
-      errors: [
-        {
-          messageId: 'preferCanParse',
-          line: 3,
-          column: 11,
-          suggestions: [
-            {
-              messageId: 'replaceWithCanParse',
-              output: `
+        errors: [
+          {
+            messageId: 'preferCanParse',
+            line: 3,
+            column: 11,
+            suggestions: [
+              {
+                messageId: 'replaceWithCanParse',
+                output: `
         function processUrl(u) {
           if (URL.canParse(u)) {
 console.log('Valid URL');
 }
         }
       `
-            }
-          ]
-        }
-      ]
-    },
-    // With second URL argument (base)
-    {
-      code: `
+              }
+            ]
+          }
+        ]
+      },
+      // With second URL argument (base)
+      {
+        code: `
         function test() {
           try {
             new URL(path, base);
@@ -164,23 +166,24 @@ console.log('Valid URL');
           }
         }
       `,
-      errors: [
-        {
-          messageId: 'preferCanParse',
-          line: 3,
-          column: 11,
-          suggestions: [
-            {
-              messageId: 'replaceWithCanParse',
-              output: `
+        errors: [
+          {
+            messageId: 'preferCanParse',
+            line: 3,
+            column: 11,
+            suggestions: [
+              {
+                messageId: 'replaceWithCanParse',
+                output: `
         function test() {
           return URL.canParse(path, base)
         }
       `
-            }
-          ]
-        }
-      ]
-    }
-  ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  });
 });

@@ -1,5 +1,6 @@
 import {RuleTester} from 'eslint';
 import {preferArrayFromMap} from './prefer-array-from-map.js';
+import {describe} from 'vitest';
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -8,121 +9,123 @@ const ruleTester = new RuleTester({
   }
 });
 
-ruleTester.run('prefer-array-from-map', preferArrayFromMap, {
-  valid: [
-    // Already using Array.from with mapper
-    'const result = Array.from(iterable, x => x * 2)',
-    'const result = Array.from(arr, mapper)',
+describe('prefer-array-from-map', () => {
+  ruleTester.run('prefer-array-from-map', preferArrayFromMap, {
+    valid: [
+      // Already using Array.from with mapper
+      'const result = Array.from(iterable, x => x * 2)',
+      'const result = Array.from(arr, mapper)',
 
-    // Spread without .map()
-    'const arr = [...iterable]',
+      // Spread without .map()
+      'const arr = [...iterable]',
 
-    // .map() on a regular array (not from spread)
-    'const result = arr.map(x => x * 2)',
-    'const result = [1, 2, 3].map(x => x * 2)',
+      // .map() on a regular array (not from spread)
+      'const result = arr.map(x => x * 2)',
+      'const result = [1, 2, 3].map(x => x * 2)',
 
-    // Array with multiple elements (not just a single spread)
-    'const result = [...arr1, ...arr2].map(x => x * 2)',
-    'const result = [1, ...arr].map(x => x * 2)',
-    'const result = [...arr, 2].map(x => x * 2)',
+      // Array with multiple elements (not just a single spread)
+      'const result = [...arr1, ...arr2].map(x => x * 2)',
+      'const result = [1, ...arr].map(x => x * 2)',
+      'const result = [...arr, 2].map(x => x * 2)',
 
-    // .map() with multiple arguments (thisArg)
-    'const result = [...arr].map(fn, thisArg)',
+      // .map() with multiple arguments (thisArg)
+      'const result = [...arr].map(fn, thisArg)',
 
-    // No spread in array literal
-    'const result = [arr].map(x => x * 2)',
+      // No spread in array literal
+      'const result = [arr].map(x => x * 2)',
 
-    // Empty array
-    'const result = [].map(x => x * 2)',
+      // Empty array
+      'const result = [].map(x => x * 2)',
 
-    // Mapper can access the third `array` argument, which Array.from's
-    // mapper is never given
-    'const result = [...arr].map((x, i, all) => all[i - 1])',
-    'const result = [...arr].map(function(x, i, all) { return all[i - 1] })',
-    'const result = [...arr].map((...args) => args[2])',
-    'const result = [...arr].map((x, ...rest) => rest[1])'
-  ],
+      // Mapper can access the third `array` argument, which Array.from's
+      // mapper is never given
+      'const result = [...arr].map((x, i, all) => all[i - 1])',
+      'const result = [...arr].map(function(x, i, all) { return all[i - 1] })',
+      'const result = [...arr].map((...args) => args[2])',
+      'const result = [...arr].map((x, ...rest) => rest[1])'
+    ],
 
-  invalid: [
-    // Basic case with arrow function
-    {
-      code: 'const result = [...arr].map(x => x * 2)',
-      output: 'const result = Array.from(arr, x => x * 2)',
-      errors: [{messageId: 'preferArrayFrom'}]
-    },
+    invalid: [
+      // Basic case with arrow function
+      {
+        code: 'const result = [...arr].map(x => x * 2)',
+        output: 'const result = Array.from(arr, x => x * 2)',
+        errors: [{messageId: 'preferArrayFrom'}]
+      },
 
-    // With named function
-    {
-      code: 'const result = [...items].map(double)',
-      output: 'const result = Array.from(items, double)',
-      errors: [{messageId: 'preferArrayFrom'}]
-    },
+      // With named function
+      {
+        code: 'const result = [...items].map(double)',
+        output: 'const result = Array.from(items, double)',
+        errors: [{messageId: 'preferArrayFrom'}]
+      },
 
-    // With function expression
-    {
-      code: 'const result = [...list].map(function(x) { return x * 2 })',
-      output: 'const result = Array.from(list, function(x) { return x * 2 })',
-      errors: [{messageId: 'preferArrayFrom'}]
-    },
+      // With function expression
+      {
+        code: 'const result = [...list].map(function(x) { return x * 2 })',
+        output: 'const result = Array.from(list, function(x) { return x * 2 })',
+        errors: [{messageId: 'preferArrayFrom'}]
+      },
 
-    // With method call on iterable
-    {
-      code: 'const result = [...map.values()].map(process)',
-      output: 'const result = Array.from(map.values(), process)',
-      errors: [{messageId: 'preferArrayFrom'}]
-    },
+      // With method call on iterable
+      {
+        code: 'const result = [...map.values()].map(process)',
+        output: 'const result = Array.from(map.values(), process)',
+        errors: [{messageId: 'preferArrayFrom'}]
+      },
 
-    // Multiple occurrences
-    {
-      code: `const a = [...arr1].map(x => x * 2)
+      // Multiple occurrences
+      {
+        code: `const a = [...arr1].map(x => x * 2)
 const b = [...arr2].map(y => y + 1)`,
-      output: `const a = Array.from(arr1, x => x * 2)
+        output: `const a = Array.from(arr1, x => x * 2)
 const b = Array.from(arr2, y => y + 1)`,
-      errors: [{messageId: 'preferArrayFrom'}, {messageId: 'preferArrayFrom'}]
-    },
+        errors: [{messageId: 'preferArrayFrom'}, {messageId: 'preferArrayFrom'}]
+      },
 
-    // Used in return statement
-    {
-      code: 'function transform(items) { return [...items].map(x => x * 2) }',
-      output:
-        'function transform(items) { return Array.from(items, x => x * 2) }',
-      errors: [{messageId: 'preferArrayFrom'}]
-    },
+      // Used in return statement
+      {
+        code: 'function transform(items) { return [...items].map(x => x * 2) }',
+        output:
+          'function transform(items) { return Array.from(items, x => x * 2) }',
+        errors: [{messageId: 'preferArrayFrom'}]
+      },
 
-    // Used in expression
-    {
-      code: 'console.log([...data].map(format))',
-      output: 'console.log(Array.from(data, format))',
-      errors: [{messageId: 'preferArrayFrom'}]
-    },
+      // Used in expression
+      {
+        code: 'console.log([...data].map(format))',
+        output: 'console.log(Array.from(data, format))',
+        errors: [{messageId: 'preferArrayFrom'}]
+      },
 
-    // Complex iterable expression
-    {
-      code: 'const result = [...getItems()].map(x => x.id)',
-      output: 'const result = Array.from(getItems(), x => x.id)',
-      errors: [{messageId: 'preferArrayFrom'}]
-    },
+      // Complex iterable expression
+      {
+        code: 'const result = [...getItems()].map(x => x.id)',
+        output: 'const result = Array.from(getItems(), x => x.id)',
+        errors: [{messageId: 'preferArrayFrom'}]
+      },
 
-    // With member expression
-    {
-      code: 'const result = [...this.items].map(process)',
-      output: 'const result = Array.from(this.items, process)',
-      errors: [{messageId: 'preferArrayFrom'}]
-    },
+      // With member expression
+      {
+        code: 'const result = [...this.items].map(process)',
+        output: 'const result = Array.from(this.items, process)',
+        errors: [{messageId: 'preferArrayFrom'}]
+      },
 
-    // Chained with other array methods
-    {
-      code: 'const doubled = [...numbers].map(n => n * 2).filter(n => n > 10)',
-      output:
-        'const doubled = Array.from(numbers, n => n * 2).filter(n => n > 10)',
-      errors: [{messageId: 'preferArrayFrom'}]
-    },
+      // Chained with other array methods
+      {
+        code: 'const doubled = [...numbers].map(n => n * 2).filter(n => n > 10)',
+        output:
+          'const doubled = Array.from(numbers, n => n * 2).filter(n => n > 10)',
+        errors: [{messageId: 'preferArrayFrom'}]
+      },
 
-    // sequence expressions must stay parenthesised
-    {
-      code: 'const result = [...(a, items)].map(process)',
-      output: 'const result = Array.from((a, items), process)',
-      errors: [{messageId: 'preferArrayFrom'}]
-    }
-  ]
+      // sequence expressions must stay parenthesised
+      {
+        code: 'const result = [...(a, items)].map(process)',
+        output: 'const result = Array.from((a, items), process)',
+        errors: [{messageId: 'preferArrayFrom'}]
+      }
+    ]
+  });
 });
