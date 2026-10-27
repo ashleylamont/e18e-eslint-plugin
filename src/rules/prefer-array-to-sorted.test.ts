@@ -3,7 +3,6 @@ import {RuleTester as TSRuleTester} from '@typescript-eslint/rule-tester';
 import {preferArrayToSorted} from './prefer-array-to-sorted.js';
 import * as path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {describe} from 'vitest';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -35,346 +34,343 @@ const tsSyntaxRuleTester = new TSRuleTester({
   }
 });
 
-describe('prefer-array-to-sorted', () => {
-  ruleTester.run(
-    'prefer-array-to-sorted (untyped)',
-    preferArrayToSorted as never,
-    {
-      valid: [
-        'const sorted = arr.sort();',
-        'arr.sort((a, b) => a - b);',
-
-        // Other array methods
-        'const mapped = arr.map(x => x * 2);',
-        'const arr = [1, 2, 3];',
-
-        // slice with different arguments
-        'arr.slice(1).sort();',
-        'arr.slice(0, 5).sort();',
-
-        'const sorted = [...new Set([1, 2, 3])].sort();',
-        'const sorted = [...new Set(arr)].sort();',
-        'const sorted = [...new Map()].sort();',
-        'const foundVersions = new Set(); const sorted = [...foundVersions].sort();',
-        'let foundVersions = new Set(); const sorted = [...foundVersions].sort();',
-        'const entries = new Map(); const sorted = [...entries].sort();',
-        'const sorted = [...items.entries()].sort();',
-        'const sorted = [...items.keys()].sort();',
-        'const sorted = [...items.values()].sort();'
-      ],
-
-      invalid: [
-        // concat().sort()
-        {
-          code: 'const sorted = arr.concat().sort((a, b) => a - b);',
-          output: 'const sorted = arr.toSorted((a, b) => a - b);',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'arr'},
-              line: 1,
-              column: 16
-            }
-          ]
-        },
-        {
-          code: 'const sorted = arr.concat().sort();',
-          output: 'const sorted = arr.toSorted();',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'arr'},
-              line: 1,
-              column: 16
-            }
-          ]
-        },
-
-        // slice().sort()
-        {
-          code: 'const sorted = arr.slice().sort();',
-          output: 'const sorted = arr.toSorted();',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'arr'},
-              line: 1,
-              column: 16
-            }
-          ]
-        },
-        {
-          code: 'const sorted = myArray.slice().sort((a, b) => b - a);',
-          output: 'const sorted = myArray.toSorted((a, b) => b - a);',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'myArray'},
-              line: 1,
-              column: 16
-            }
-          ]
-        },
-
-        // slice(0).sort()
-        {
-          code: 'const sorted = arr.slice(0).sort((a, b) => b - a);',
-          output: 'const sorted = arr.toSorted((a, b) => b - a);',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'arr'},
-              line: 1,
-              column: 16
-            }
-          ]
-        },
-        {
-          code: 'const sorted = arr.slice(0).sort();',
-          output: 'const sorted = arr.toSorted();',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'arr'},
-              line: 1,
-              column: 16
-            }
-          ]
-        },
-
-        // [...arr].sort()
-        {
-          code: 'const sorted = [...arr].sort();',
-          output: 'const sorted = arr.toSorted();',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'arr'},
-              line: 1,
-              column: 16
-            }
-          ]
-        },
-        {
-          code: 'const sorted = [...myArray].sort((a, b) => a - b);',
-          output: 'const sorted = myArray.toSorted((a, b) => a - b);',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'myArray'},
-              line: 1,
-              column: 16
-            }
-          ]
-        },
-
-        // Complex expressions
-        {
-          code: 'const sorted = obj.data.items.slice().sort();',
-          output: 'const sorted = obj.data.items.toSorted();',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'obj.data.items'},
-              line: 1,
-              column: 16
-            }
-          ]
-        },
-        {
-          code: 'function foo() { return [...this.items].sort((a, b) => a.id - b.id); }',
-          output:
-            'function foo() { return this.items.toSorted((a, b) => a.id - b.id); }',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'this.items'},
-              line: 1,
-              column: 25
-            }
-          ]
-        },
-        {
-          code: 'const sorted = [...Object.entries(counts)].sort(([a], [b]) => a.localeCompare(b));',
-          output:
-            'const sorted = Object.entries(counts).toSorted(([a], [b]) => a.localeCompare(b));',
-          errors: [{messageId: 'preferToSorted'}]
-        },
-
-        // Multiple arguments (edge case - sort() typically takes 0 or 1 arg)
-        {
-          code: 'const sorted = arr.slice().sort(arg1, arg2);',
-          output: 'const sorted = arr.toSorted(arg1, arg2);',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'arr'},
-              line: 1,
-              column: 16
-            }
-          ]
-        },
-
-        // Expressions needing parentheses for property access
-        {
-          code: 'const sorted = [...a ?? b].sort(fn);',
-          output: 'const sorted = (a ?? b).toSorted(fn);',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'a ?? b'},
-              line: 1,
-              column: 16
-            }
-          ]
-        },
-        {
-          code: 'const sorted = [...a || b].sort();',
-          output: 'const sorted = (a || b).toSorted();',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'a || b'},
-              line: 1,
-              column: 16
-            }
-          ]
-        },
-
-        // Optional chaining preservation
-        {
-          code: 'const sorted = obj.arr?.slice().sort(fn);',
-          output: 'const sorted = obj.arr?.toSorted(fn);',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'obj.arr'},
-              line: 1,
-              column: 16
-            }
-          ]
-        },
-        {
-          code: 'const sorted = obj.arr?.concat().sort();',
-          output: 'const sorted = obj.arr?.toSorted();',
-          errors: [
-            {
-              messageId: 'preferToSorted',
-              data: {array: 'obj.arr'},
-              line: 1,
-              column: 16
-            }
-          ]
-        }
-      ]
-    }
-  );
-
-  tsSyntaxRuleTester.run(
-    'prefer-array-to-sorted (typescript syntax)',
-    preferArrayToSorted,
-    {
-      valid: [
-        'function sortItems<T>(items: Iterable<T>) { return [...items].sort(); }',
-        'function sortItems(items: Map<string, number>) { return [...items.entries()].sort(); }',
-        'const items: Set<string> = new Set(); const sorted = [...items].sort();',
-        'let items: Iterable<string>; const sorted = [...items].sort();'
-      ],
-      invalid: [
-        {
-          code: 'const items: string[] = []; const sorted = [...items].sort();',
-          output:
-            'const items: string[] = []; const sorted = items.toSorted();',
-          errors: [{messageId: 'preferToSorted'}]
-        }
-      ]
-    }
-  );
-
-  typedRuleTester.run('prefer-array-to-sorted (typed)', preferArrayToSorted, {
+ruleTester.run(
+  'prefer-array-to-sorted (untyped)',
+  preferArrayToSorted as never,
+  {
     valid: [
-      // Set spread - Set doesn't have toSorted()
-      {
-        code: `
-        declare const mySet: Set<number>;
-        const sorted = [...mySet].sort();
-      `
-      },
-      // Map spread - Map doesn't have toSorted()
-      {
-        code: `
-        declare const myMap: Map<string, number>;
-        const sorted = [...myMap].sort();
-      `
-      },
-      // Iterable spread - generic iterables don't have toSorted()
-      {
-        code: `
-        declare const iter: Iterable<number>;
-        const sorted = [...iter].sort();
-      `
-      }
+      'const sorted = arr.sort();',
+      'arr.sort((a, b) => a - b);',
+
+      // Other array methods
+      'const mapped = arr.map(x => x * 2);',
+      'const arr = [1, 2, 3];',
+
+      // slice with different arguments
+      'arr.slice(1).sort();',
+      'arr.slice(0, 5).sort();',
+
+      'const sorted = [...new Set([1, 2, 3])].sort();',
+      'const sorted = [...new Set(arr)].sort();',
+      'const sorted = [...new Map()].sort();',
+      'const foundVersions = new Set(); const sorted = [...foundVersions].sort();',
+      'let foundVersions = new Set(); const sorted = [...foundVersions].sort();',
+      'const entries = new Map(); const sorted = [...entries].sort();',
+      'const sorted = [...items.entries()].sort();',
+      'const sorted = [...items.keys()].sort();',
+      'const sorted = [...items.values()].sort();'
     ],
 
     invalid: [
-      // Typed array variable - spread
+      // concat().sort()
       {
-        code: `
+        code: 'const sorted = arr.concat().sort((a, b) => a - b);',
+        output: 'const sorted = arr.toSorted((a, b) => a - b);',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'arr'},
+            line: 1,
+            column: 16
+          }
+        ]
+      },
+      {
+        code: 'const sorted = arr.concat().sort();',
+        output: 'const sorted = arr.toSorted();',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'arr'},
+            line: 1,
+            column: 16
+          }
+        ]
+      },
+
+      // slice().sort()
+      {
+        code: 'const sorted = arr.slice().sort();',
+        output: 'const sorted = arr.toSorted();',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'arr'},
+            line: 1,
+            column: 16
+          }
+        ]
+      },
+      {
+        code: 'const sorted = myArray.slice().sort((a, b) => b - a);',
+        output: 'const sorted = myArray.toSorted((a, b) => b - a);',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'myArray'},
+            line: 1,
+            column: 16
+          }
+        ]
+      },
+
+      // slice(0).sort()
+      {
+        code: 'const sorted = arr.slice(0).sort((a, b) => b - a);',
+        output: 'const sorted = arr.toSorted((a, b) => b - a);',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'arr'},
+            line: 1,
+            column: 16
+          }
+        ]
+      },
+      {
+        code: 'const sorted = arr.slice(0).sort();',
+        output: 'const sorted = arr.toSorted();',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'arr'},
+            line: 1,
+            column: 16
+          }
+        ]
+      },
+
+      // [...arr].sort()
+      {
+        code: 'const sorted = [...arr].sort();',
+        output: 'const sorted = arr.toSorted();',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'arr'},
+            line: 1,
+            column: 16
+          }
+        ]
+      },
+      {
+        code: 'const sorted = [...myArray].sort((a, b) => a - b);',
+        output: 'const sorted = myArray.toSorted((a, b) => a - b);',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'myArray'},
+            line: 1,
+            column: 16
+          }
+        ]
+      },
+
+      // Complex expressions
+      {
+        code: 'const sorted = obj.data.items.slice().sort();',
+        output: 'const sorted = obj.data.items.toSorted();',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'obj.data.items'},
+            line: 1,
+            column: 16
+          }
+        ]
+      },
+      {
+        code: 'function foo() { return [...this.items].sort((a, b) => a.id - b.id); }',
+        output:
+          'function foo() { return this.items.toSorted((a, b) => a.id - b.id); }',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'this.items'},
+            line: 1,
+            column: 25
+          }
+        ]
+      },
+      {
+        code: 'const sorted = [...Object.entries(counts)].sort(([a], [b]) => a.localeCompare(b));',
+        output:
+          'const sorted = Object.entries(counts).toSorted(([a], [b]) => a.localeCompare(b));',
+        errors: [{messageId: 'preferToSorted'}]
+      },
+
+      // Multiple arguments (edge case - sort() typically takes 0 or 1 arg)
+      {
+        code: 'const sorted = arr.slice().sort(arg1, arg2);',
+        output: 'const sorted = arr.toSorted(arg1, arg2);',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'arr'},
+            line: 1,
+            column: 16
+          }
+        ]
+      },
+
+      // Expressions needing parentheses for property access
+      {
+        code: 'const sorted = [...a ?? b].sort(fn);',
+        output: 'const sorted = (a ?? b).toSorted(fn);',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'a ?? b'},
+            line: 1,
+            column: 16
+          }
+        ]
+      },
+      {
+        code: 'const sorted = [...a || b].sort();',
+        output: 'const sorted = (a || b).toSorted();',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'a || b'},
+            line: 1,
+            column: 16
+          }
+        ]
+      },
+
+      // Optional chaining preservation
+      {
+        code: 'const sorted = obj.arr?.slice().sort(fn);',
+        output: 'const sorted = obj.arr?.toSorted(fn);',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'obj.arr'},
+            line: 1,
+            column: 16
+          }
+        ]
+      },
+      {
+        code: 'const sorted = obj.arr?.concat().sort();',
+        output: 'const sorted = obj.arr?.toSorted();',
+        errors: [
+          {
+            messageId: 'preferToSorted',
+            data: {array: 'obj.arr'},
+            line: 1,
+            column: 16
+          }
+        ]
+      }
+    ]
+  }
+);
+
+tsSyntaxRuleTester.run(
+  'prefer-array-to-sorted (typescript syntax)',
+  preferArrayToSorted,
+  {
+    valid: [
+      'function sortItems<T>(items: Iterable<T>) { return [...items].sort(); }',
+      'function sortItems(items: Map<string, number>) { return [...items.entries()].sort(); }',
+      'const items: Set<string> = new Set(); const sorted = [...items].sort();',
+      'let items: Iterable<string>; const sorted = [...items].sort();'
+    ],
+    invalid: [
+      {
+        code: 'const items: string[] = []; const sorted = [...items].sort();',
+        output: 'const items: string[] = []; const sorted = items.toSorted();',
+        errors: [{messageId: 'preferToSorted'}]
+      }
+    ]
+  }
+);
+
+typedRuleTester.run('prefer-array-to-sorted (typed)', preferArrayToSorted, {
+  valid: [
+    // Set spread - Set doesn't have toSorted()
+    {
+      code: `
+        declare const mySet: Set<number>;
+        const sorted = [...mySet].sort();
+      `
+    },
+    // Map spread - Map doesn't have toSorted()
+    {
+      code: `
+        declare const myMap: Map<string, number>;
+        const sorted = [...myMap].sort();
+      `
+    },
+    // Iterable spread - generic iterables don't have toSorted()
+    {
+      code: `
+        declare const iter: Iterable<number>;
+        const sorted = [...iter].sort();
+      `
+    }
+  ],
+
+  invalid: [
+    // Typed array variable - spread
+    {
+      code: `
         const arr: number[] = [1, 2, 3];
         const sorted = [...arr].sort();
       `,
-        output: `
+      output: `
         const arr: number[] = [1, 2, 3];
         const sorted = arr.toSorted();
       `,
-        errors: [
-          {
-            messageId: 'preferToSorted',
-            line: 3,
-            column: 24
-          }
-        ]
-      },
-      // Tuple type - concat
-      {
-        code: `
+      errors: [
+        {
+          messageId: 'preferToSorted',
+          line: 3,
+          column: 24
+        }
+      ]
+    },
+    // Tuple type - concat
+    {
+      code: `
         const tuple: [number, string] = [1, 'a'];
         const sorted = tuple.concat().sort();
       `,
-        output: `
+      output: `
         const tuple: [number, string] = [1, 'a'];
         const sorted = tuple.toSorted();
       `,
-        errors: [
-          {
-            messageId: 'preferToSorted',
-            line: 3,
-            column: 24
-          }
-        ]
-      },
-      // Function returning array
-      {
-        code: `
+      errors: [
+        {
+          messageId: 'preferToSorted',
+          line: 3,
+          column: 24
+        }
+      ]
+    },
+    // Function returning array
+    {
+      code: `
         function getItems(): string[] {
           return ['a', 'b', 'c'];
         }
         const sorted = [...getItems()].sort();
       `,
-        output: `
+      output: `
         function getItems(): string[] {
           return ['a', 'b', 'c'];
         }
         const sorted = getItems().toSorted();
       `,
-        errors: [
-          {
-            messageId: 'preferToSorted',
-            line: 5,
-            column: 24
-          }
-        ]
-      }
-    ]
-  });
+      errors: [
+        {
+          messageId: 'preferToSorted',
+          line: 5,
+          column: 24
+        }
+      ]
+    }
+  ]
 });
